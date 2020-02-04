@@ -30,10 +30,12 @@ export enum Role {
     Admin
 }
 
+export type RoleNames = keyof typeof Role;
+
 export interface User extends DataItem {
     username: string;
     mobilePhoneNumber: string;
-    roles: (keyof typeof Role)[];
+    roles: RoleNames[];
 }
 
 export interface FileData extends DataItem {
@@ -45,12 +47,19 @@ export interface Contact {
     phone: string;
 }
 
+export interface Organization {
+    url?: string;
+    contacts?: Contact[];
+    remark?: string;
+    creator?: User;
+}
+
 export interface GeoCoord {
     latitude: number;
     longitude: number;
 }
 
-export interface Place {
+export interface Place extends Organization {
     province?: string;
     city?: string;
     district?: string;
