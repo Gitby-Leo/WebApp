@@ -14,18 +14,15 @@ import {
     ContactField
 } from '../../component';
 
-type FactoryEditProps = Factory & { loading?: boolean };
-
 @component({
     tagName: 'factory-edit',
     renderTarget: 'children'
 })
-export class FactoryEdit extends mixin<{ fid: string }, FactoryEditProps>() {
+export class FactoryEdit extends mixin<{ dataId: string }, Factory>() {
     @watch
-    fid = '';
+    dataId = '';
 
     state = {
-        loading: false,
         name: '',
         province: '',
         city: '',
@@ -42,9 +39,7 @@ export class FactoryEdit extends mixin<{ fid: string }, FactoryEditProps>() {
     async connectedCallback() {
         super.connectedCallback();
 
-        if (!this.fid) return;
-
-        await this.setState({ loading: true });
+        if (!this.dataId) return;
 
         const {
             name,
@@ -58,10 +53,9 @@ export class FactoryEdit extends mixin<{ fid: string }, FactoryEditProps>() {
             supplies,
             contacts,
             remark
-        } = await factory.getOne(this.fid);
+        } = await factory.getOne(this.dataId);
 
         this.setState({
-            loading: false,
             name,
             qualification,
             province,
@@ -105,21 +99,15 @@ export class FactoryEdit extends mixin<{ fid: string }, FactoryEditProps>() {
     handleSubmit = async (event: Event) => {
         event.preventDefault();
 
-        await this.setState({ loading: true });
+        const { supplies, ...data } = this.state;
 
-        const { loading, supplies, ...data } = this.state;
+        await factory.update(
+            { ...data, supplies: supplies.filter(({ count }) => count) },
+            this.dataId
+        );
+        self.alert('发布成功！');
 
-        try {
-            await factory.update(
-                { ...data, supplies: supplies.filter(({ count }) => count) },
-                this.fid
-            );
-            self.alert('发布成功！');
-
-            history.push(RouteRoot.Factory);
-        } finally {
-            await this.setState({ loading: false });
-        }
+        history.push(RouteRoot.Factory);
     };
 
     render(
@@ -134,9 +122,8 @@ export class FactoryEdit extends mixin<{ fid: string }, FactoryEditProps>() {
             url,
             supplies,
             contacts,
-            remark,
-            loading
-        }: FactoryEditProps
+            remark
+        }: Factory
     ) {
         return (
             <SessionBox>
@@ -190,7 +177,7 @@ export class FactoryEdit extends mixin<{ fid: string }, FactoryEditProps>() {
                         defaultValue={remark}
                     />
                     <div className="form-group mt-3">
-                        <Button type="submit" block disabled={loading}>
+                        <Button type="submit" block disabled={factory.loading}>
                             提交
                         </Button>
                         <Button

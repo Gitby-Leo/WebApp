@@ -7,21 +7,18 @@ import { RouteRoot } from '../menu';
 import { SessionBox, ContactField } from '../../component';
 
 interface ClinicEditProps {
-    cid?: string;
+    dataId?: string;
 }
-
-type ClinicEditState = Clinic & { loading?: boolean };
 
 @component({
     tagName: 'clinic-edit',
     renderTarget: 'children'
 })
-export class ClinicEdit extends mixin<ClinicEditProps, ClinicEditState>() {
+export class ClinicEdit extends mixin<ClinicEditProps, Clinic>() {
     @watch
-    cid = '';
+    dataId = '';
 
     state = {
-        loading: false,
         name: '',
         url: '',
         startTime: '09:00',
@@ -33,9 +30,7 @@ export class ClinicEdit extends mixin<ClinicEditProps, ClinicEditState>() {
     async connectedCallback() {
         super.connectedCallback();
 
-        if (!this.cid) return;
-
-        await this.setState({ loading: true });
+        if (!this.dataId) return;
 
         const {
             name,
@@ -44,10 +39,9 @@ export class ClinicEdit extends mixin<ClinicEditProps, ClinicEditState>() {
             startTime,
             endTime,
             remark
-        } = await clinic.getOne(this.cid);
+        } = await clinic.getOne(this.dataId);
 
         await this.setState({
-            loading: false,
             name,
             url,
             contacts,
@@ -66,36 +60,28 @@ export class ClinicEdit extends mixin<ClinicEditProps, ClinicEditState>() {
     handleSubmit = async (event: Event) => {
         event.preventDefault();
 
-        await this.setState({ loading: true });
+        const { contacts, ...rest } = this.state;
 
-        const { loading, ...data } = this.state;
+        await clinic.update(
+            {
+                ...rest,
+                contacts: contacts.filter(({ name }) => name.trim())
+            },
+            this.dataId
+        );
 
-        try {
-            await clinic.update(data, this.cid);
+        self.alert('发布成功！');
 
-            self.alert('发布成功！');
-
-            history.push(RouteRoot.Clinic);
-        } finally {
-            await this.setState({ loading: false });
-        }
+        history.push(RouteRoot.Clinic);
     };
 
     render(
-        { cid }: ClinicEditProps,
-        {
-            name,
-            url,
-            startTime,
-            endTime,
-            contacts,
-            remark,
-            loading
-        }: ClinicEditState
+        { dataId }: ClinicEditProps,
+        { name, url, startTime, endTime, contacts, remark }: Clinic
     ) {
         return (
             <SessionBox>
-                <h2>义诊服务{cid ? '发布' : '修改'}</h2>
+                <h2>义诊服务{dataId ? '发布' : '修改'}</h2>
 
                 <form onChange={this.changeText} onSubmit={this.handleSubmit}>
                     <FormField
@@ -147,7 +133,7 @@ export class ClinicEdit extends mixin<ClinicEditProps, ClinicEditState>() {
                         label="备注"
                     />
                     <div className="form-group mt-3">
-                        <Button type="submit" block disabled={loading}>
+                        <Button type="submit" block disabled={clinic.loading}>
                             提交
                         </Button>
                         <Button
